@@ -4,27 +4,27 @@ mongose.connect(process.env.MONGO_URI)
 const productscema = mongose.Schema({
     id: {
         type: Number,
-        require: true,
+        required: true,
     },
     name: {
         type: String,
-        require: true
+        required: true
     },
     image: {
         type: String,
-        require: true
+        required: true
     },
     catagory: {
         type: String,
-        require: true
+        required: true
     },
     new_price: {
         type: Number,
-        require: true
+        required: true
     },
     old_price: {
         type: Number,
-        require: true
+        required: true
     },
     date: {
         type: Number,
