@@ -114,7 +114,7 @@ app.post('/create_product', async (req, res) => {
 
         const { name, image, catagory, new_price, old_price, date, available } = req.body;
 
-        if (!name || !image || !category) {
+        if (!name || !image || !catagory) {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
