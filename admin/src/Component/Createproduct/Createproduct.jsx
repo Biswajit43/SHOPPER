@@ -27,7 +27,7 @@ const Createproduct = () => {
     await fetch(`https://shopper-backend-uolh.onrender.com/upload`, {
       method: 'POST',
       headers: {
-        Accept: 'applocation/json'
+        Accept: 'application/json'
       },
       body: formdata,
     }).then((res) => res.json()).then((data) => { response = data })
