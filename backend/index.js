@@ -112,7 +112,7 @@ app.post('/create_product', async (req, res) => {
             ids = total[total.length - 1].id + 1;
         }
 
-        const { name, image, category, new_price, old_price, date, available } = req.body;
+        const { name, image, catagory, new_price, old_price, date, available } = req.body;
 
         if (!name || !image || !category) {
             return res.status(400).json({ error: "Missing required fields" });
@@ -122,7 +122,7 @@ app.post('/create_product', async (req, res) => {
             id: ids,
             name,
             image,
-            category,
+            catagory,
             new_price,
             old_price,
             date,
