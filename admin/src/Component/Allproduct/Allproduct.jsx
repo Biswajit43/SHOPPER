@@ -1,121 +1,82 @@
-import React, { useState } from 'react';
-import upload_area from '../../assets/upload_area.svg'
-const Createproduct = () => {
-  const [image, setimage] = useState(false)
-  const [productdetails, setproductdetails] = useState({
-    name: "",
-    image: "",
-    catagory: "",
-    new_price: "",
-    old_price: "",
-  })
+import React, { useEffect, useState } from 'react';
 
+const Allproduct = () => {
+  const [product, setproduct] = useState([]);
 
-  const changehandler = (e) => {
-    setproductdetails({ ...productdetails, [e.target.name]: e.target.value })
-  }
-  const imagehandler = (e) => {
-    setimage(e.target.files[0])
-  }
+  const allitem = async () => {
+    await fetch(`https://shopper-backend-uolh.onrender.com/allproduct`)
+      .then((res) => res.json())
+      .then((data) => setproduct(data))
+      .catch((err) => console.error("Error fetching products:", err));
+  };
 
-  const addproduct = async () => {
-    console.log(productdetails)
-    let response;
-    let product = productdetails;
-    let formdata = new FormData()
-    formdata.append('product', image);
-    await fetch(`https://shopper-backend-uolh.onrender.com/upload`, {
+  const removeitem = async (id) => {
+    await fetch(`https://shopper-backend-uolh.onrender.com/remove_product`, {
       method: 'POST',
       headers: {
-        Accept: 'applocation/json'
+        'Content-Type': 'application/json',
       },
-      body: formdata,
-    }).then((res) => res.json()).then((data) => { response = data })
-    if (response.success) {
-      product.image = response.image_url;
-      console.log(product.image)
+      body: JSON.stringify({ id: id })
+    }).then(() => alert("Item removed!"))
+      .catch((err) => console.error("Error removing item:", err));
 
-      //create that product 
-      await fetch(`https://shopper-backend-uolh.onrender.com/create_product`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
+    await allitem();
+  };
 
-        },
-        body: JSON.stringify(product),
-      }).then((res) => res.json()).then((data) => {
-        if (data.success) {
-          alert("product added to the server");
-        }
-        else alert("failed")
-      })
-    }
-  }
-
+  useEffect(() => {
+    allitem();
+  }, []);
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
-      <h2 className="text-2xl font-bold mb-6 text-center">Upload Product</h2>
-      <div className="flex flex-col gap-4">
-        <div>
-          <label className="block mb-1 text-gray-700">Title:</label>
-          <input
-            value={productdetails.name} onChange={changehandler}
-            name="name"
-            type="text"
-            placeholder="Enter the product name..."
-            className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
-          />
+    <div className="max-w-7xl mx-auto px-4 py-10">
+      <h1 className="text-3xl font-bold text-center text-gray-800 mb-10">
+        All Available Products
+      </h1>
+
+      {/* Show message if no products */}
+      {product.length === 0 ? (
+        <h1 className="text-center text-xl text-gray-600">No Item Is Available Right Now</h1>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {product.map((item) => (
+            <div
+              key={item._id || item.name}
+              className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition duration-300 ease-in-out"
+            >
+              <div className="overflow-hidden">
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  className="hover:scale-105 transition-transform duration-300 h-60 w-full object-cover rounded-t-2xl"
+                />
+              </div>
+
+              <div className="p-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
+                  {item.name}
+                </h2>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-green-600 font-bold text-base">
+                    ₹{item.new_price}
+                  </span>
+                  <span className="text-gray-400 line-through text-sm">
+                    ₹{item.old_price}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => removeitem(item._id)}
+                className="w-full bg-red-500 text-white font-semibold py-2 rounded-b-lg hover:bg-red-600 transition duration-200"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
         </div>
-        <div>
-          <label className="block mb-1 text-gray-700">New Price:</label>
-          <input
-            value={productdetails.new_price} onChange={changehandler}
-            name="new_price"
-            type="number"
-            placeholder="Enter the product new price..."
-            className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-gray-700">Old Price:</label>
-          <input
-            value={productdetails.old_price} onChange={changehandler}
-            name="old_price"
-            type="number"
-            placeholder="Enter the product old price..."
-            className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-        <div>
-          <label className="block mb-1 text-gray-700">Category:</label>
-          <select
-            value={productdetails.catagory} onChange={changehandler}
-            name="catagory"
-            className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="">Select</option>
-            <option value="women">Women</option>
-            <option value="men">Men</option>
-            <option value="kids">Kids</option>
-          </select>
-        </div>
-        <div>
-          <label className="block mb-1 text-gray-700">Image:</label>
-          <div className="relative w-35 h-35" >
-            <img src={image ? URL.createObjectURL(image) : upload_area} className='w-full h-full object-cover rounded' />
-            <input onChange={imagehandler} type='file' name='image' className='absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer' />
-          </div>
-        </div>
-        <button onClick={addproduct}
-          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition duration-200"
-        >
-          Upload Product
-        </button>
-      </div>
+      )}
     </div>
   );
 };
 
-export default Createproduct;
+export default Allproduct;
