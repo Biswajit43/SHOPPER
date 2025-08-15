@@ -5,14 +5,14 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Shop from './pages/Shop'
 import Cart from './pages/Cart'
 import Product from './pages/Product'
-import Loginsignup from './pages/Loginsignup'
+import Loginsignup from './Components/Popular/Popular'
 import Footer from './Components/Footer/Footer'
 import Shopcatagory from './pages/Shopcatagory'
 import men_banner from './Components/Assets/banner_mens.png'
 import women_banner from './Components/Assets/banner_women.png'
 import kid_banner from './Components/Assets/banner_kids.png'
-import Payment from './pages/Payment'
-import Success from './pages/Success'
+import Payment from './Pages/Payment'
+import Success from './Pages/Success'
 function App() {
   const [count, setCount] = useState(0)
   return (
