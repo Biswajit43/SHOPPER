@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }))
 
 const allowedOrigins = [
   "http://localhost:5173", 
-  "https://shopper-frontend.onrender.com" // your deployed frontend URL
+  "https://shopper-for-you.onrender.com" // your deployed frontend URL
 ];
 
 app.use(cors({
@@ -225,8 +225,8 @@ app.post('/create-checkout-session', async (req, res) => {
                 },
             ],
             mode: 'payment',
-            success_url: 'http://localhost:5173/Success',
-            cancel_url: 'http://localhost:5173/cancel',
+            success_url: 'https://shopper-for-you.onrender.com/Success',
+            cancel_url: 'https://shopper-for-you.onrender.com/cancel',
         });
 
         res.json({ id: session.id });
