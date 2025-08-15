@@ -15,7 +15,8 @@ app.use(express.urlencoded({ extended: true }))
 
 const allowedOrigins = [
   "http://localhost:5173", 
-  "https://shopper-for-you.onrender.com" // your deployed frontend URL
+  "https://shopper-for-you.onrender.com",// your deployed frontend URL
+  "https://shopper-qt5g.onrender.com"
 ];
 
 app.use(cors({
