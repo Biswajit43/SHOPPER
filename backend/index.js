@@ -7,22 +7,30 @@ const usermodel = require('./model/Usermodel')
 const productmodel = require('./model/Productmodel')
 const path = require('path');
 const { userInfo } = require('os');
+const cloudinary = require('cloudinary').v2
+const streamifier = require('streamifier'); 
+
 require('dotenv').config();
 const { error, log } = require('console');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
 
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const allowedOrigins = [
-  "http://localhost:5173", 
-  "https://shopper-for-you.onrender.com",// your deployed frontend URL
-  "https://shopper-qt5g.onrender.com"
+    "http://localhost:5173",
+    "https://shopper-frontend.onrender.com" // your deployed frontend URL
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "token"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "token"]
 }));
 
 
@@ -32,21 +40,29 @@ app.get('/', (req, res) => {
     res.send("THIS IS MY BACKEND PART OF MY PROJECT")
 })
 //create disk storage...
-const storage = multer.diskStorage({
-    destination: './upload/Images',
-    filename: (req, file, cb) => {
-        return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
-    }
-})
-const upload = multer({ storage: storage })
+const storage = multer.memoryStorage(); // temporarily hold file in memory
+const upload = multer({ storage });
 
 app.use('/Images', express.static('upload/Images'))
 
 app.post('/upload', upload.single('product'), (req, res) => {
-    res.json({
-        success: 1,
-        image_url: `https://shopper-backend-uolh.onrender.com/Images/${req.file.filename}`
-    });
+    const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'Images' }, // keep same folder name
+        (error, result) => {
+            if (error) {
+                console.error(error);
+                return res.status(500).json({ success: 0, error: "Upload failed" });
+            }
+
+            // Return the URL in the same format as before
+            res.json({
+                success: 1,
+                image_url: result.secure_url
+            });
+        }
+    );
+
+    streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 
 app.post('/register', async (req, res) => {
@@ -78,7 +94,7 @@ app.post('/register', async (req, res) => {
         res.status(400).json({ success: false, error: "already exists this email id..." })
     }
 })
-app.post('/login', async (req, res) => { 
+app.post('/login', async (req, res) => {
     let { email, password } = req.body;
     let user = await usermodel.findOne({ email: email })
     if (user) {
@@ -106,7 +122,7 @@ app.post('/login', async (req, res) => {
 app.post('/create_product', async (req, res) => {
     try {
         console.log("Incoming request body:", req.body);
-        
+
         const total = await productmodel.find().sort({ id: 1 }); // sort by id ascending
         let ids = 1;
         if (total.length > 0) {
@@ -197,9 +213,9 @@ app.post('/removefromcart', fetchUser, async (req, res) => {
         validuser.cartdata[req.body.item_id] -= 1;
     }
     await usermodel.findOneAndUpdate({ _id: req.user.id }, { cartdata: validuser.cartdata })
-     res.json({ success: true, message: "Item removed from cart" }); // <-- ADD THIS
+    res.json({ success: true, message: "Item removed from cart" }); // <-- ADD THIS
 })
- 
+
 app.post('/getuserdetails', fetchUser, async (req, res) => {
     let user = await usermodel.findOne({ _id: req.user.id })
     res.json({ success: true, cartdata: user.cartdata });
@@ -226,8 +242,8 @@ app.post('/create-checkout-session', async (req, res) => {
                 },
             ],
             mode: 'payment',
-            success_url: 'https://shopper-for-you.onrender.com/Success',
-            cancel_url: 'https://shopper-for-you.onrender.com/cancel',
+            success_url: 'http://localhost:5173/Success',
+            cancel_url: 'http://localhost:5173/cancel',
         });
 
         res.json({ id: session.id });
@@ -245,9 +261,9 @@ app.post('/empty', fetchUser, async (req, res) => {
 
 app.post('/delete', fetchUser, async (req, res) => {
     let total = await productmodel.find();
-    if(total.length > 0){
-         await productmodel.deleteMany({});
-         return res.status(200).json({ success: true, message: "All products deleted successfully" });
+    if (total.length > 0) {
+        await productmodel.deleteMany({});
+        return res.status(200).json({ success: true, message: "All products deleted successfully" });
     }
 })
 
