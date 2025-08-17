@@ -28,7 +28,7 @@ const Productdisplay = (props) => {
             alert(`${product.name} added to cart!`);
         } else {
             alert('Please create an account or log in to add items to your cart.');
-            navigate('/register');
+            navigate('/login');
         }
     };
 
