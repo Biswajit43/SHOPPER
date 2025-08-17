@@ -1,32 +1,49 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { Shopcontext } from '../../Context/Shopcontext'
-import { useParams } from 'react-router-dom'
+import React, { useContext, useEffect, useState } from 'react';
+import { Shopcontext } from '../../Context/Shopcontext';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const Productdisplay = (props) => {
-    const { addtocart } = useContext(Shopcontext)
-    const { productid } = useParams()
-    const { product } = props
+    const { addtocart } = useContext(Shopcontext);
+    const { productid } = useParams();
+    const { product } = props;
+    const navigate = useNavigate();
 
-    const [selectedSize, setSelectedSize] = useState('M')
-    if (!product) {
-        return <p className="text-red-500 text-center p-4">Product not found</p>
-    }
+    const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || 'M');
+
+    // Effect to scroll to top on product change
     useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [productid]);
+
+    // Handle case where product data is not yet available
+    if (!product) {
+        return <p className="text-red-500 text-center p-4">Product not found</p>;
+    }
+
+    // Handler for the "Add to Cart" button
+    const handleAddToCart = () => {
+        const authToken = localStorage.getItem('auth-token');
+        if (authToken) {
+            addtocart(product.id);
+            alert(`${product.name} added to cart!`);
+        } else {
+            alert('Please create an account or log in to add items to your cart.');
+            navigate('/register');
+        }
+    };
+
     return (
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Left Column: Image */}
             <div className="flex flex-col items-center">
-                {/* Thumbnail Gallery */}
+                {/* Thumbnail Gallery (Dynamic) */}
                 <div className="flex gap-2 mb-4">
-                    {[product.image, product.image, product.image].map((img, idx) => (
+                    {product.images && product.images.map((img, idx) => (
                         <img
                             key={idx}
                             src={img}
-                            alt={`preview-${idx}`}
-                            className={`w-16 h-16 object-cover rounded-md border cursor-pointer hover:scale-105 transition  'border-blue-600'
-                                }`}
+                            alt={`${product.name} preview ${idx + 1}`}
+                            className="w-16 h-16 object-cover rounded-md border cursor-pointer hover:scale-105 transition"
                         />
                     ))}
                 </div>
@@ -43,46 +60,50 @@ const Productdisplay = (props) => {
             <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-gray-800">{product.name}</h2>
 
-                {/* Rating Stars */}
+                {/* Rating Stars (Dynamic) */}
                 <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((item) => (
-                        <span key={item} className="text-yellow-400 text-lg">★</span>
+                    {[...Array(5)].map((_, i) => (
+                        <span key={i} className={i < product.rating ? "text-yellow-400 text-lg" : "text-gray-300 text-lg"}>★</span>
                     ))}
-                    <span className="text-gray-600 text-sm">(132 ratings)</span>
+                    <span className="text-gray-600 text-sm">({product.reviewCount || 0} ratings)</span>
                 </div>
+
                 {/* Price */}
                 <div className="flex items-center gap-4">
                     <span className="text-green-600 text-xl font-semibold">₹{product.new_price}</span>
                     <span className="text-gray-400 line-through text-lg">₹{product.old_price}</span>
                 </div>
 
-                {/* Size Options */}
+                {/* Size Options (Dynamic) */}
                 <div>
                     <p className="font-semibold mb-2">Select Size:</p>
                     <div className="flex gap-3">
-                        {['M', 'L', 'XL', 'XXL'].map((size) => (
+                        {product.sizes && product.sizes.map((size) => (
                             <button
                                 key={size}
                                 onClick={() => setSelectedSize(size)}
-                                className={`px-4 py-2 rounded-full border ${selectedSize === size
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black border-gray-400'
-                                    }`}
+                                className={`px-4 py-2 rounded-full border ${
+                                    selectedSize === size
+                                        ? 'bg-black text-white'
+                                        : 'bg-white text-black border-gray-400'
+                                }`}
                             >
                                 {size}
                             </button>
                         ))}
                     </div>
                 </div>
-                {/* Add to Cart */}
+
+                {/* Add to Cart Button with Auth Check */}
                 <button
-                    onClick={() => addtocart(product.id)}
+                    onClick={handleAddToCart}
                     className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition"
                 >
                     Add to Cart
                 </button>
             </div>
         </div>
-    )
-}
-export default Productdisplay
+    );
+};
+
+export default Productdisplay;
