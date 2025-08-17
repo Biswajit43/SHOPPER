@@ -224,7 +224,7 @@ app.post('/getuserdetails', fetchUser, async (req, res) => {
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY); // Replace with your test Secret Key
 
-app.post('/create-checkout-session',fetchuser, async (req, res) => {
+app.post('/create-checkout-session',fetchUser, async (req, res) => {
     try {
         const { amount } = req.body;
 
