@@ -23,6 +23,7 @@ cloudinary.config({
 });
 
 const allowedOrigins = [
+    "http://localhost:5173/"
     "https://shopper-for-you.onrender.com",
     "https://shopper-qt5g.onrender.com"
 ];
