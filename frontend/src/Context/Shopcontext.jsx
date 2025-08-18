@@ -2,121 +2,115 @@ import React, { useEffect, useState, createContext } from "react";
 
 export const Shopcontext = createContext(null);
 
-const getcard = () => {
-    const arr = {};
-    for (let i = 1; i <= 300; i++) {
-        arr[i] = 0;
-    }
-    return arr;
-};
+const getDefaultCart = () => ({});
 
 const Shopcontextprovider = (props) => {
     const [all_product, setAll_product] = useState([]);
-    const [carditem, setcarditem] = useState(getcard());
-
-    // In Shopcontextprovider.js
-
-useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    // Fetch products in parallel
-    fetch(`https://shopper-backend-uolh.onrender.com/allproduct`)
-        .then((res) => res.json())
-        .then((data) => setAll_product(data))
-        .catch((err) => console.error("Error fetching products:", err));
-
-    if (token) {
-        // Logged-in: fetch cart from backend
-        fetch(`https://shopper-backend-uolh.onrender.com/getuserdetails`, {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-                token: token,
-            },
-        })
-            .then((res) => res.json())
-            .then((userData) => {
-                if (userData.success) {
-                    const fullCart = getcard();
-                    Object.entries(userData.cartdata || {}).forEach(([key, value]) => {
-                        fullCart[key] = isNaN(value) ? 0 : value; // fix NaN issue
-                    });
-                    setcarditem(fullCart);
-                }
-            })
-            .catch((err) => console.error("Error fetching user details:", err));
-    } else {
-        // Guest: load from localStorage instantly
-        const savedCart = JSON.parse(localStorage.getItem("cart")) || getcard();
-        setcarditem(savedCart);
-    }
-}, [localStorage.getItem("token")]);
- // This still runs once, but now the logic is ordered correctly.
-
+    const [carditem, setcarditem] = useState(getDefaultCart()); // Renamed for clarity
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        fetch(`https://shopper-backend-uolh.onrender.com/allproduct`)
-            .then((res) => res.json())
-            .then((data) => {
-                console.log("Fetched products:", data);
-                setAll_product(data);
-            });
+        const initializeShop = async () => {
+            setLoading(true);
+            setError(null);
+            const token = localStorage.getItem("auth-token");
+
+            try {
+                // Using Promise.all to run fetches concurrently for better performance
+                const [productsResponse, cartResponse] = await Promise.all([
+                    fetch(`https://shopper-backend-uolh.onrender.com/allproduct`),
+                    token ? fetch(`https://shopper-backend-uolh.onrender.com/getuserdetails`, {
+                        method: "POST",
+                        headers: { 'auth-token': token },
+                    }) : Promise.resolve(null), // If no token, resolve immediately
+                ]);
+
+                // Process products
+                if (!productsResponse.ok) throw new Error("Failed to fetch products.");
+                const productsData = await productsResponse.json();
+                setAll_product(productsData);
+
+                // Process cart data
+                if (token && cartResponse && cartResponse.ok) {
+                    const userData = await cartResponse.json();
+                    if (userData.success) setcarditem(userData.cartdata || getDefaultCart());
+                } else if (!token) {
+                    // If not logged in, load the guest cart from localStorage
+                    const savedCart = JSON.parse(localStorage.getItem("cart")) || getDefaultCart();
+                    setcarditem(savedCart);
+                }
+
+            } catch (err) {
+                console.error("Initialization Error:", err);
+                setError("Could not load shop data. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeShop();
     }, []);
 
-    const addtocart = (id) => {
-        console.log(id)
-        setcarditem((prevCart) => ({
-            ...prevCart,
+    const addtocart = async (id) => {
+        const originalCart = { ...carditem }; // Store original state for potential revert
+        
+        // Optimistic UI update
+        const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
+        setcarditem(newCart);
 
-            [id]: (prevCart[id] || 0) + 1,
-        }));
-
-        if (localStorage.getItem('token')) {
-            fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
-                method: "POST",
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'token': localStorage.getItem('token'),
-                },
-                body: JSON.stringify({ item_id: id }),
-            })
-                .then((res) => {
-                    console.log("🌐 Response status:", res.status);
-                    return res.json(); // this can throw if not JSON!
-                })
-                .then((data) => console.log("✅ Fetched:", data))
-                .catch((err) => console.error("❌ Fetch failed:", err));
+        const token = localStorage.getItem("auth-token");
+        if (token) {
+            try {
+                const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json', 'auth-token': token },
+                    body: JSON.stringify({ item_id: id }),
+                });
+                if (!response.ok) throw new Error("Failed to sync with server.");
+            } catch (error) {
+                console.error("Error adding to cart:", error);
+                // CRITICAL: Revert optimistic update on failure
+                setcarditem(originalCart); 
+                alert("Could not add item to cart. Please try again.");
+            }
+        } else {
+            // Guest user: save the updated cart to localStorage
+            localStorage.setItem("cart", JSON.stringify(newCart));
         }
     };
 
-    const removefromcart = (id) => {
-        setcarditem((prevCart) => ({
-            ...prevCart,
-            [id]: Math.max((prevCart[id] || 0) - 1, 0),
-        }));
+    const removefromcart = async (id) => {
+        const originalCart = { ...carditem };
+        const currentQuantity = carditem[id] || 0;
+        
+        if (currentQuantity === 0) return; // Do nothing if item is not in cart
 
-        if (localStorage.getItem('token')) {
-            fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
-                method: "POST",
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'token': localStorage.getItem('token'),
-                },
-                body: JSON.stringify({ item_id: id }),
-            })
-                .then((res) => {
-                    console.log("🌐 Response status:", res.status);
-                    return res.json(); // this can throw if not JSON!
-                })
-                .then((data) => console.log("✅ Fetched:", data))
-                .catch((err) => console.error("❌ Fetch failed:", err));
+        // Optimistic UI update
+        const newCart = { ...carditem, [id]: currentQuantity - 1 };
+        setcarditem(newCart);
+        
+        const token = localStorage.getItem("auth-token");
+        if (token) {
+            try {
+                const response = await fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json', 'auth-token': token },
+                    body: JSON.stringify({ item_id: id }),
+                });
+                if (!response.ok) throw new Error("Failed to sync with server.");
+            } catch (error) {
+                console.error("Error removing from cart:", error);
+                 // CRITICAL: Revert optimistic update on failure
+                setcarditem(originalCart);
+                alert("Could not remove item from cart. Please try again.");
+            }
+        } else {
+            localStorage.setItem("cart", JSON.stringify(newCart));
         }
     };
 
-    const contextvalue = { all_product, carditem, addtocart, removefromcart };
+    const contextvalue = { all_product, carditem, addtocart, removefromcart, loading, error };
 
     return (
         <Shopcontext.Provider value={contextvalue}>
