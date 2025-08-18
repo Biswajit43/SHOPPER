@@ -22,7 +22,7 @@ const Shopcontextprovider = (props) => {
                     fetch(`https://shopper-backend-uolh.onrender.com/allproduct`),
                     token ? fetch(`https://shopper-backend-uolh.onrender.com/getuserdetails`, {
                         method: "POST",
-                        headers: { 'auth-token': token },
+                        headers: { 'token': token },
                     }) : Promise.resolve(null), // If no token, resolve immediately
                 ]);
 
