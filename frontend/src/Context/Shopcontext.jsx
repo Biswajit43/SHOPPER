@@ -59,12 +59,12 @@ const Shopcontextprovider = (props) => {
         const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
         setcarditem(newCart);
 
-        const token = localStorage.getItem("auth-token");
+        const token = localStorage.getItem("token");
         if (token) {
             try {
                 const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
                     method: "POST",
-                    headers: { 'Content-Type': 'application/json', 'auth-token': token },
+                    headers: { 'Content-Type': 'application/json', 'token': token },
                     body: JSON.stringify({ item_id: id }),
                 });
                 if (!response.ok) throw new Error("Failed to sync with server.");
@@ -90,12 +90,12 @@ const Shopcontextprovider = (props) => {
         const newCart = { ...carditem, [id]: currentQuantity - 1 };
         setcarditem(newCart);
         
-        const token = localStorage.getItem("auth-token");
+        const token = localStorage.getItem("token");
         if (token) {
             try {
                 const response = await fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
                     method: "POST",
-                    headers: { 'Content-Type': 'application/json', 'auth-token': token },
+                    headers: { 'Content-Type': 'application/json', 'token': token },
                     body: JSON.stringify({ item_id: id }),
                 });
                 if (!response.ok) throw new Error("Failed to sync with server.");
