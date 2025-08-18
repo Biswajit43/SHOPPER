@@ -14,7 +14,7 @@ const Shopcontextprovider = (props) => {
         const initializeShop = async () => {
             setLoading(true);
             setError(null);
-            const token = localStorage.getItem("auth-token");
+            const token = localStorage.getItem("token");
 
             try {
                 // Using Promise.all to run fetches concurrently for better performance
