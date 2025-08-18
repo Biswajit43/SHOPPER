@@ -243,8 +243,8 @@ app.post('/create-checkout-session',fetchUser, async (req, res) => {
                 },
             ],
             mode: 'payment',
-            success_url: 'http://localhost:5173/Success',
-            cancel_url: 'http://localhost:5173/cancel',
+            success_url: 'https://shopper-for-you.onrender.com//Success',
+            cancel_url: 'https://shopper-for-you.onrender.com//cancel',
         });
 
         res.json({ id: session.id });
