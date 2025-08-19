@@ -154,7 +154,7 @@ const Shopcontextprovider = (props) => {
         setcarditem(newCart);
 
         try {
-            const response = await fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
+            const response = await fetch(`https://shopper-backend-uolh.onrender.com/remove_product`, {
                 method: "POST",
                 headers: { 
                     'Content-Type': 'application/json', 
