@@ -172,7 +172,7 @@ app.post('/create_product', async (req, res) => {
 app.post('/remove_product', async (req, res) => {
     try {
         const { id } = req.body;
-        const removedproduct = await productmodel.findOneAndDelete({ _id: id });
+        const removedproduct = await productmodel.findOneAndDelete({  id });
         if (removedproduct) {
             res.json({ success: true, data: removedproduct });
         } else {
