@@ -52,33 +52,40 @@ const Shopcontextprovider = (props) => {
         initializeShop();
     }, []);
 
-    const addtocart = async (id) => {
-        const originalCart = { ...carditem }; // Store original state for potential revert
-        
-        // Optimistic UI update
-        const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
-        setcarditem(newCart);
+   // You'll need to import useNavigate from react-router-dom in the component
+// where you call this function, or pass the navigate function into the context.
+// For simplicity, we'll just use an alert here. A redirect is better for UX.
 
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
-                    method: "POST",
-                    headers: { 'Content-Type': 'application/json', 'token': token },
-                    body: JSON.stringify({ item_id: id }),
-                });
-                if (!response.ok) throw new Error("Failed to sync with server.");
-            } catch (error) {
-                console.error("Error adding to cart:", error);
-                // CRITICAL: Revert optimistic update on failure
-                setcarditem(originalCart); 
-                alert("Could not add item to cart. Please try again.");
-            }
-        } else {
-            // Guest user: save the updated cart to localStorage
-            localStorage.setItem("cart", JSON.stringify(newCart));
-        }
-    };
+const addtocart = async (id) => {
+    const token = localStorage.getItem("token");
+
+    // CHECK FOR TOKEN FIRST!
+    if (!token) {
+        alert("Please log in to add items to your cart.");
+        // For a better user experience, you would redirect them to the login page.
+        // Example: window.location.replace('/login');
+        return; // Stop the function here
+    }
+
+    const originalCart = { ...carditem };
+    
+    // Optimistic UI update
+    const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
+    setcarditem(newCart);
+
+    try {
+        const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json', 'token': token },
+            body: JSON.stringify({ item_id: id }),
+        });
+        if (!response.ok) throw new Error("Failed to sync with server.");
+    } catch (error) {
+        console.error("Error adding to cart:", error);
+        setcarditem(originalCart); // Revert on failure
+        alert("Could not add item to cart. Please try again.");
+    }
+};
 
     const removefromcart = async (id) => {
         const originalCart = { ...carditem };
