@@ -186,7 +186,7 @@ app.get('/popularinwomen', async (req, res) => {
 })
 
 const fetchUser = async (req, res, next) => {
-    const token = req.header('token');
+    const token = localStorage.getItem("token");
     if (!token) {
         return res.status(401).send({ "error": "log in first with email and password" });
     }
