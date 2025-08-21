@@ -170,18 +170,10 @@ app.post('/create_product', async (req, res) => {
 });
 
 app.post('/remove_product', async (req, res) => {
-    try {
-        const { id } = req.body;
-        const removedproduct = await productmodel.findOneAndDelete({  id });
-        if (removedproduct) {
-            res.json({ success: true, data: removedproduct });
-        } else {
-            res.status(404).json({ success: false, error: "Product not found" });
-        }
-    } catch (error) {
-        console.error('Remove product error:', error);
-        res.status(500).json({ success: false, error: "Failed to remove product" });
-    }
+    const { id, name, image, catagory, new_price, old_price, date, available } = req.body;
+    const removedproduct = await productmodel.findOneAndDelete(id)
+    console.log("item will be removed")
+    res.send(removedproduct)
 });
 
 app.get('/allproduct', async (req, res) => {
