@@ -24,7 +24,6 @@ const Productdisplay = (props) => {
         addtocart(product.id);
         // Replace alert with a more modern notification (e.g., a toast)
         console.log(`${product.name} added to cart!`); 
-        alert(`${product.name} added to cart!`); // Kept for functionality, but recommend replacing
     };
 
     return (
