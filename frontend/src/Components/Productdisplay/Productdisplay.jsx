@@ -1,32 +1,38 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Shopcontext } from '../../Context/Shopcontext';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const Productdisplay = (props) => {
-    const { addtocart } = useContext(Shopcontext);
+    const { addtocart, user } = useContext(Shopcontext); // Assuming user is managed in context
     const { productid } = useParams();
     const { product } = props;
-    import { useNavigate } from 'react-router-dom';
-
-    // Default to a valid size if available, otherwise null
-    const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || null);
     const navigate = useNavigate();
+
+    // Default size selection
+    const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || null);
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [productid]);
 
     if (!product) {
-        return <p className="text-red-500 text-center p-4">Product not found</p>;
+        return (
+            <p className="text-red-500 text-center p-4 text-lg">
+                Product not found!
+            </p>
+        );
     }
 
-    // UX IMPROVEMENT: This handler now allows anyone to add to the cart.
-    // The context handles whether to save to localStorage (guest) or backend (user).
     const handleAddToCart = () => {
-        addtocart(product.id);
-        // Replace alert with a more modern notification (e.g., a toast)
-        console.log(`${product.name} added to cart!`); 
-        navigate('/login');
+        addtocart(product.id, selectedSize);
+
+        if (!user) {
+            // If user not logged in, navigate to login
+            navigate('/login');
+        } else {
+            // If logged in, show toast instead of redirect
+            alert(`${product.name} added to cart!`);
+        }
     };
 
     return (
@@ -52,7 +58,7 @@ const Productdisplay = (props) => {
 
                 {/* Size Options (Dynamic) */}
                 {product.sizes && product.sizes.length > 0 && (
-                     <div>
+                    <div>
                         <p className="font-semibold mb-2">Select Size:</p>
                         <div className="flex gap-3">
                             {product.sizes.map((size) => (
@@ -71,7 +77,7 @@ const Productdisplay = (props) => {
                         </div>
                     </div>
                 )}
-               
+
                 {/* Add to Cart Button */}
                 <button
                     onClick={handleAddToCart}
