@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-
 const Loginsignup = () => {
   const navigate = useNavigate();
   const [details, setdetails] = useState({
@@ -15,6 +14,10 @@ const Loginsignup = () => {
     password: "",
   });
 
+  const [login, setlogin] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+
   const handleLoginChange = (e) => {
     const { name, value } = e.target;
     setLoginDetails((prev) => ({
@@ -22,7 +25,6 @@ const Loginsignup = () => {
       [name]: value,
     }));
   };
-
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,44 +34,82 @@ const Loginsignup = () => {
     }));
   };
 
-
-  const [login, setlogin] = useState(false);
-
   const userregister = async () => {
-    await fetch(`https://shopper-backend-uolh.onrender.com/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(details)
-    }).then((res) => res.json()).then((data) => {
+    setIsLoading(true);
+    setLoadingMessage("Creating your account...");
+    
+    try {
+      const response = await fetch(`https://shopper-backend-uolh.onrender.com/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(details)
+      });
+      
+      const data = await response.json();
+      
       if (data.success) {
-        alert("Registration successful!");
-        navigate("/login");
+        setLoadingMessage("Registration successful! Redirecting...");
+        setTimeout(() => {
+          alert("Registration successful!");
+          navigate("/login");
+        }, 1000);
       } else {
         alert("Registration failed: " + (data.error || "Unknown error"));
       }
-    })
+    } catch (error) {
+      alert("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   const userlogin = async () => {
-    await fetch(`https://shopper-backend-uolh.onrender.com/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(loginDetails)
-    }).then((res) => res.json()).then((data) => {
+    setIsLoading(true);
+    setLoadingMessage("Signing you in...");
+    
+    // Show different messages for long waits
+    const messageTimer = setTimeout(() => {
+      setLoadingMessage("Server is waking up, please wait...");
+    }, 5000);
+    
+    try {
+      const response = await fetch(`https://shopper-backend-uolh.onrender.com/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginDetails)
+      });
+      
+      clearTimeout(messageTimer);
+      const data = await response.json();
+      
       if (data.success) {
         localStorage.setItem("token", data.token);
-        alert("Login successful!");
-        navigate("/");
+        setLoadingMessage("Login successful! Redirecting...");
+        setTimeout(() => {
+          alert("Login successful!");
+          navigate("/");
+        }, 1000);
+      } else {
+        alert("Login failed! Please check your credentials.");
       }
-      else {
-        alert("logged in failed!")
-      }
-    })
+    } catch (error) {
+      clearTimeout(messageTimer);
+      alert("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
+
+  const LoadingSpinner = () => (
+    <div className="flex items-center justify-center space-x-2">
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+      <span className="text-sm">{loadingMessage}</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 via-blue-200 to-blue-300 px-4">
@@ -80,13 +120,14 @@ const Loginsignup = () => {
             <div>
               <label className="text-sm font-semibold text-gray-700">Email</label>
               <input
-                type="text"
+                type="email"
                 name="email"
                 value={loginDetails.email}
                 onChange={handleLoginChange}
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -100,18 +141,32 @@ const Loginsignup = () => {
                 placeholder="Enter your password"
                 className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
+                disabled={isLoading}
               />
             </div>
 
-            <button onClick={userlogin} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
-              Login
+            <button 
+              onClick={userlogin} 
+              disabled={isLoading}
+              className={`${
+                isLoading 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-3 rounded-lg transition flex items-center justify-center min-h-[44px]`}
+            >
+              {isLoading ? <LoadingSpinner /> : 'Login'}
             </button>
 
             <p className="text-sm text-center">
               Don't have an account?{" "}
               <button
-                className="text-blue-600 hover:underline font-semibold"
-                onClick={() => setlogin(false)}
+                className={`${
+                  isLoading 
+                    ? 'text-gray-400 cursor-not-allowed' 
+                    : 'text-blue-600 hover:underline'
+                } font-semibold`}
+                onClick={() => !isLoading && setlogin(false)}
+                disabled={isLoading}
               >
                 Register here
               </button>
@@ -131,19 +186,21 @@ const Loginsignup = () => {
                 placeholder="Enter your name"
                 className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
+                disabled={isLoading}
               />
             </div>
 
             <div>
               <label className="text-sm font-semibold text-gray-700">Email</label>
               <input
-                type="text"
+                type="email"
                 name="email"
                 value={details.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
                 className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
+                disabled={isLoading}
               />
             </div>
 
@@ -157,21 +214,45 @@ const Loginsignup = () => {
                 placeholder="Enter your password"
                 className="w-full mt-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
+                disabled={isLoading}
               />
             </div>
 
-            <button onClick={userregister} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
-              Register
+            <button 
+              onClick={userregister} 
+              disabled={isLoading}
+              className={`${
+                isLoading 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
+              } text-white font-semibold py-3 rounded-lg transition flex items-center justify-center min-h-[44px]`}
+            >
+              {isLoading ? <LoadingSpinner /> : 'Register'}
             </button>
 
             <p className="text-sm text-center">
               Already have an account?{" "}
               <button
-                className="text-blue-600 hover:underline font-semibold"
-                onClick={() => setlogin(true)}
+                className={`${
+                  isLoading 
+                    ? 'text-gray-400 cursor-not-allowed' 
+                    : 'text-blue-600 hover:underline'
+                } font-semibold`}
+                onClick={() => !isLoading && setlogin(true)}
+                disabled={isLoading}
               >
                 Login here
               </button>
+            </p>
+          </div>
+        )}
+        
+        {isLoading && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+            <p className="text-sm text-blue-600">
+              {loadingMessage.includes('waking up') 
+                ? "Free hosting servers sleep when inactive. This may take a moment..." 
+                : "Please wait..."}
             </p>
           </div>
         )}
