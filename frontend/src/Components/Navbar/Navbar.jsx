@@ -116,6 +116,27 @@ const Navbar = () => {
             <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
                 isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             }`}>
+                <ul className="flex flex-col items-start gap-4 p-4 text-gray-700 font-medium">
+            {navitem.map((item) => (
+                <li
+                    key={item}
+                    onClick={() => {
+                        setactive(item);
+                        setIsMenuOpen(false); // Close menu after clicking
+                    }}
+                    className={`cursor-pointer pb-1 border-b w-full transition-all duration-200 hover:text-blue-600 ${
+                        active === item ? 'border-blue-600 text-blue-600' : 'border-transparent'
+                    }`}
+                >
+                    <Link
+                        to={item === "shop" ? "/" : `/${item}`}
+                        className="capitalize block w-full"
+                    >
+                        {item}
+                    </Link>
+                </li>
+            ))}
+        </ul>
                 <div className="bg-gray-50 border-t border-gray-200">
                     {/* Mobile Login/Logout */}
                     <div className="p-4">
