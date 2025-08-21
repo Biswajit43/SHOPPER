@@ -6,9 +6,11 @@ const Productdisplay = (props) => {
     const { addtocart } = useContext(Shopcontext);
     const { productid } = useParams();
     const { product } = props;
+    import { useNavigate } from 'react-router-dom';
 
     // Default to a valid size if available, otherwise null
     const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -24,6 +26,7 @@ const Productdisplay = (props) => {
         addtocart(product.id);
         // Replace alert with a more modern notification (e.g., a toast)
         console.log(`${product.name} added to cart!`); 
+        navigate('/login');
     };
 
     return (
