@@ -9,28 +9,31 @@ const Shopcontextprovider = (props) => {
     const [carditem, setcarditem] = useState(getDefaultCart());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
 
-    // Check authentication status
+    // ✅ Check authentication status
     const checkAuthStatus = useCallback(() => {
         const token = localStorage.getItem("token");
         setIsLoggedIn(!!token);
         return !!token;
     }, []);
 
-    // Fetch user cart data
+    // ✅ Fetch user cart data
     const fetchUserCart = useCallback(async () => {
         const token = localStorage.getItem("token");
         if (!token) return null;
 
         try {
-            const response = await fetch(`https://shopper-backend-uolh.onrender.com/getuserdetails`, {
-                method: "POST",
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'token': token 
-                },
-            });
+            const response = await fetch(
+                `https://shopper-backend-uolh.onrender.com/getuserdetails`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        token: token,
+                    },
+                }
+            );
 
             if (!response.ok) {
                 if (response.status === 401) {
@@ -49,7 +52,7 @@ const Shopcontextprovider = (props) => {
         }
     }, []);
 
-    // Fetch products
+    // ✅ Fetch products list
     const fetchProducts = useCallback(async () => {
         try {
             const response = await fetch(`https://shopper-backend-uolh.onrender.com/allproduct`);
@@ -61,7 +64,7 @@ const Shopcontextprovider = (props) => {
         }
     }, []);
 
-    // Initialize shop data
+    // ✅ Initialize shop data
     useEffect(() => {
         const initializeShop = async () => {
             setLoading(true);
@@ -69,11 +72,12 @@ const Shopcontextprovider = (props) => {
 
             try {
                 const isAuth = checkAuthStatus();
-                
-                // Fetch products
+
+                // Fetch all products
                 const products = await fetchProducts();
                 setAll_product(products);
 
+                // Fetch cart if logged in, else reset
                 if (isAuth) {
                     const userCart = await fetchUserCart();
                     if (userCart) {
@@ -81,8 +85,9 @@ const Shopcontextprovider = (props) => {
                     } else {
                         setcarditem(getDefaultCart());
                     }
+                } else {
+                    setcarditem(getDefaultCart());
                 }
-
             } catch (err) {
                 console.error("Initialization Error:", err);
                 setError("Could not load shop data. Please try again later.");
@@ -92,100 +97,110 @@ const Shopcontextprovider = (props) => {
         };
 
         initializeShop();
-    }, [checkAuthStatus, fetchProducts, fetchUserCart]);
+    }, [checkAuthStatus, fetchProducts, fetchUserCart, isLoggedIn]); // ✅ Reacts when login state changes
 
-    // Add to cart (only if logged in)
-    const addtocart = useCallback(async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("You must log in to add items to cart.");
-            return;
-        }
+    // ✅ Add to cart
+    const addtocart = useCallback(
+        async (id) => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You must log in to add items to cart.");
+                return;
+            }
 
-        const originalCart = { ...carditem };
-        const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
-        setcarditem(newCart);
+            const originalCart = { ...carditem };
+            const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
+            setcarditem(newCart);
 
-        try {
-            const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
-                method: "POST",
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'token': token 
-                },
-                body: JSON.stringify({ item_id: id }),
-            });
+            try {
+                const response = await fetch(
+                    `https://shopper-backend-uolh.onrender.com/addtocart`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            token: token,
+                        },
+                        body: JSON.stringify({ item_id: id }),
+                    }
+                );
 
-            if (!response.ok) {
-                if (response.status === 401) {
-                    localStorage.removeItem("token");
-                    setIsLoggedIn(false);
-                    alert("Session expired. Please log in again.");
-                    return;
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem("token");
+                        setIsLoggedIn(false);
+                        alert("Session expired. Please log in again.");
+                        return;
+                    }
+                    throw new Error("Failed to add item to cart");
                 }
-                throw new Error("Failed to add item to cart");
-            }
 
-            const result = await response.json();
-            if (result.success && result.cartdata) {
-                setcarditem(result.cartdata);
-            }
-
-        } catch (error) {
-            console.error("Error adding to cart:", error);
-            setcarditem(originalCart);
-            alert("Could not add item to cart. Please try again.");
-        }
-    }, [carditem]);
-
-    // Remove from cart (only if logged in)
-    const removefromcart = useCallback(async (id) => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("You must log in to remove items from cart.");
-            return;
-        }
-
-        const currentQuantity = carditem[id] || 0;
-        if (currentQuantity === 0) return;
-
-        const originalCart = { ...carditem };
-        const newCart = { ...carditem, [id]: currentQuantity - 1 };
-        setcarditem(newCart);
-
-        try {
-            const response = await fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
-                method: "POST",
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'token': token 
-                },
-                body: JSON.stringify({ item_id: id }),
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    localStorage.removeItem("token");
-                    setIsLoggedIn(false);
-                    alert("Session expired. Please log in again.");
-                    return;
+                const result = await response.json();
+                if (result.success && result.cartdata) {
+                    setcarditem(result.cartdata);
                 }
-                throw new Error("Failed to remove item from cart");
+            } catch (error) {
+                console.error("Error adding to cart:", error);
+                setcarditem(originalCart); // rollback UI
+                alert("Could not add item to cart. Please try again.");
+            }
+        },
+        [carditem]
+    );
+
+    // ✅ Remove from cart
+    const removefromcart = useCallback(
+        async (id) => {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                alert("You must log in to remove items from cart.");
+                return;
             }
 
-            const result = await response.json();
-            if (result.success && result.cartdata) {
-                setcarditem(result.cartdata);
+            const currentQuantity = carditem[id] || 0;
+            if (currentQuantity === 0) return;
+
+            const originalCart = { ...carditem };
+            const newCart = { ...carditem, [id]: currentQuantity - 1 };
+            setcarditem(newCart);
+
+            try {
+                const response = await fetch(
+                    `https://shopper-backend-uolh.onrender.com/removefromcart`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            token: token,
+                        },
+                        body: JSON.stringify({ item_id: id }),
+                    }
+                );
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem("token");
+                        setIsLoggedIn(false);
+                        alert("Session expired. Please log in again.");
+                        return;
+                    }
+                    throw new Error("Failed to remove item from cart");
+                }
+
+                const result = await response.json();
+                if (result.success && result.cartdata) {
+                    setcarditem(result.cartdata);
+                }
+            } catch (error) {
+                console.error("Error removing from cart:", error);
+                setcarditem(originalCart);
+                alert("Could not remove item from cart. Please try again.");
             }
+        },
+        [carditem]
+    );
 
-        } catch (error) {
-            console.error("Error removing from cart:", error);
-            setcarditem(originalCart);
-            alert("Could not remove item from cart. Please try again.");
-        }
-    }, [carditem]);
-
-    // Clear cart (only if logged in)
+    // ✅ Clear cart
     const clearCart = useCallback(() => {
         if (!localStorage.getItem("token")) {
             alert("You must log in to clear cart.");
@@ -194,46 +209,45 @@ const Shopcontextprovider = (props) => {
         setcarditem(getDefaultCart());
     }, []);
 
-    // Login success handler - just fetch cart
-    const handleLoginSuccess = useCallback(async () => {
-        setIsLoggedIn(true);
-        const userCart = await fetchUserCart();
-        if (userCart) {
-            setcarditem(userCart);
-        }
-    }, [fetchUserCart]);
+    // ✅ Login success handler → triggers re-render
+    const handleLoginSuccess = useCallback(() => {
+        setIsLoggedIn(true); // ✅ Now context auto-refreshes
+    }, []);
 
-    // Logout handler
+    // ✅ Logout handler
     const handleLogout = useCallback(() => {
         localStorage.removeItem("token");
         setIsLoggedIn(false);
         setcarditem(getDefaultCart());
     }, []);
 
-    // Context value
-    const contextvalue = useMemo(() => ({
-        all_product,
-        carditem,
-        addtocart,
-        removefromcart,
-        clearCart,
-        loading,
-        error,
-        isLoggedIn,
-        handleLoginSuccess,
-        handleLogout
-    }), [
-        all_product,
-        carditem,
-        addtocart,
-        removefromcart,
-        clearCart,
-        loading,
-        error,
-        isLoggedIn,
-        handleLoginSuccess,
-        handleLogout
-    ]);
+    // ✅ Context value
+    const contextvalue = useMemo(
+        () => ({
+            all_product,
+            carditem,
+            addtocart,
+            removefromcart,
+            clearCart,
+            loading,
+            error,
+            isLoggedIn,
+            handleLoginSuccess,
+            handleLogout,
+        }),
+        [
+            all_product,
+            carditem,
+            addtocart,
+            removefromcart,
+            clearCart,
+            loading,
+            error,
+            isLoggedIn,
+            handleLoginSuccess,
+            handleLogout,
+        ]
+    );
 
     return (
         <Shopcontext.Provider value={contextvalue}>
