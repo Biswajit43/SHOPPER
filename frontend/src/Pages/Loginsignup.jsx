@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shopcontext } from '../../Context/Shopcontext'; // Make sure this path is correct
+import { Shopcontext } from '../Context/Shopcontext';// Make sure this path is correct
 
 const Loginsignup = () => {
     const navigate = useNavigate();
