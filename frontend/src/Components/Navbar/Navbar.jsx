@@ -1,133 +1,245 @@
-import React, { useContext, useState, useEffect } from 'react'; // Removed unused useEffect
-import logo from '../Assets/logo.png';
-import cart from '../Assets/cart.png';
-import { Link, useNavigate } from 'react-router-dom';
-import { Shopcontext } from '../../Context/Shopcontext'; // Correct path
+import React, { useEffect, useState, createContext, useCallback, useMemo } from "react";
 
-const navitem = ["shop", "Men", "Women", "Kids"];
+export const Shopcontext = createContext(null);
 
-const Navbar = () => {
-    const navigate = useNavigate();
-    // ✅ 1. Consume isLoggedIn and handleLogout directly from the context
-    const { all_product, carditem, isLoggedIn, handleLogout } = useContext(Shopcontext);
+const getDefaultCart = () => ({});
 
-    const [sum, setSum] = useState(0);
-    const [active, setactive] = useState("shop");
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    // Update cart count dynamically (this part is correct)
-    useEffect(() => {
-        let total = 0;
-        // Ensure carditem is not undefined before iterating
-        if (all_product.length > 0 && carditem) {
-            all_product.forEach((item) => {
-                total += carditem[item.id] || 0;
+const Shopcontextprovider = (props) => {
+    const [all_product, setAll_product] = useState([]);
+    const [carditem, setcarditem] = useState(getDefaultCart());
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // Check authentication status
+    const checkAuthStatus = useCallback(() => {
+        const token = localStorage.getItem("token");
+        setIsLoggedIn(!!token);
+        return !!token;
+    }, []);
+
+    // Fetch user cart data
+    const fetchUserCart = useCallback(async () => {
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+
+        try {
+            const response = await fetch(`https://shopper-backend-uolh.onrender.com/getuserdetails`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'token': token
+                },
             });
-        }
-        setSum(total);
-    }, [all_product, carditem]);
-    // const handleLogout = () => { ... };
 
-    const handleMobileLogout = () => {
-        handleLogout(); // ✅ Call the function from the context
-        setIsMenuOpen(false);
-        navigate('/login'); // You can still navigate after logout
-    };
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem("token");
+                    setIsLoggedIn(false);
+                    return null;
+                }
+                throw new Error("Failed to fetch user cart");
+            }
+
+            const userData = await response.json();
+            return userData.success ? userData.cartdata : null;
+        } catch (error) {
+            console.error("Error fetching user cart:", error);
+            return null;
+        }
+    }, []);
+
+    // Fetch products
+    const fetchProducts = useCallback(async () => {
+        try {
+            const response = await fetch(`https://shopper-backend-uolh.onrender.com/allproduct`);
+            if (!response.ok) throw new Error("Failed to fetch products");
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching products:", error);
+            throw error;
+        }
+    }, []);
+
+    // Initialize shop data
+    useEffect(() => {
+        const initializeShop = async () => {
+            setLoading(true);
+            setError(null);
+
+            try {
+                const isAuth = checkAuthStatus();
+
+                // Fetch products
+                const products = await fetchProducts();
+                setAll_product(products);
+
+                if (isAuth) {
+                    const userCart = await fetchUserCart();
+                    if (userCart) {
+                        setcarditem(userCart);
+                    } else {
+                        setcarditem(getDefaultCart());
+                    }
+                }
+
+            } catch (err) {
+                console.error("Initialization Error:", err);
+                setError("Could not load shop data. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initializeShop();
+    }, [checkAuthStatus, fetchProducts, fetchUserCart]);
+
+    // Add to cart (only if logged in)
+    const addtocart = useCallback(async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("You must log in to add items to cart.");
+            return;
+        }
+
+        const originalCart = { ...carditem };
+        const newCart = { ...carditem, [id]: (carditem[id] || 0) + 1 };
+        setcarditem(newCart);
+
+        try {
+            const response = await fetch(`https://shopper-backend-uolh.onrender.com/addtocart`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'token': token
+                },
+                body: JSON.stringify({ item_id: id }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem("token");
+                    setIsLoggedIn(false);
+                    alert("Session expired. Please log in again.");
+                    return;
+                }
+                throw new Error("Failed to add item to cart");
+            }
+
+            const result = await response.json();
+            if (result.success && result.cartdata) {
+                setcarditem(result.cartdata);
+            }
+
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            setcarditem(originalCart);
+            alert("Could not add item to cart. Please try again.");
+        }
+    }, [carditem]);
+
+    // Remove from cart (only if logged in)
+    const removefromcart = useCallback(async (id) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("You must log in to remove items from cart.");
+            return;
+        }
+
+        const currentQuantity = carditem[id] || 0;
+        if (currentQuantity === 0) return;
+
+        const originalCart = { ...carditem };
+        const newCart = { ...carditem, [id]: currentQuantity - 1 };
+        setcarditem(newCart);
+
+        try {
+            const response = await fetch(`https://shopper-backend-uolh.onrender.com/removefromcart`, {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'token': token
+                },
+                body: JSON.stringify({ item_id: id }),
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem("token");
+                    setIsLoggedIn(false);
+                    alert("Session expired. Please log in again.");
+                    return;
+                }
+                throw new Error("Failed to remove item from cart");
+            }
+
+            const result = await response.json();
+            if (result.success && result.cartdata) {
+                setcarditem(result.cartdata);
+            }
+
+        } catch (error) {
+            console.error("Error removing from cart:", error);
+            setcarditem(originalCart);
+            alert("Could not remove item from cart. Please try again.");
+        }
+    }, [carditem]);
+
+    // Clear cart (only if logged in)
+    const clearCart = useCallback(() => {
+        if (!localStorage.getItem("token")) {
+            alert("You must log in to clear cart.");
+            return;
+        }
+        setcarditem(getDefaultCart());
+    }, []);
+
+    // Login success handler - just fetch cart
+    const handleLoginSuccess = useCallback(async () => {
+        setIsLoggedIn(true);
+        const userCart = await fetchUserCart();
+        if (userCart) {
+            setcarditem(userCart);
+        }
+    }, [fetchUserCart]);
+
+    // Logout handler
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+        setcarditem(getDefaultCart());
+    }, []);
+
+    // Context value
+    const contextvalue = useMemo(() => ({
+        all_product,
+        carditem,
+        addtocart,
+        removefromcart,
+        clearCart,
+        loading,
+        error,
+        isLoggedIn,
+        handleLoginSuccess,
+        handleLogout
+    }), [
+        all_product,
+        carditem,
+        addtocart,
+        removefromcart,
+        clearCart,
+        loading,
+        error,
+        isLoggedIn,
+        handleLoginSuccess,
+        handleLogout
+    ]);
 
     return (
-        <div className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-            <div className="flex justify-between items-center px-3 sm:px-6 py-3 relative">
-
-                {/* Logo & Brand */}
-                <div className="flex items-center gap-2">
-                    <img src={logo} alt="logo" className="h-8 sm:h-10 w-auto object-contain" />
-                    <p className="text-lg sm:text-xl font-semibold text-gray-800">Shopper</p>
-                </div>
-
-                {/* Right Actions */}
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="hidden md:block">
-                        {/* The `isLoggedIn` variable now comes directly from the context */}
-                        {isLoggedIn ? (
-                            <button
-                                // ✅ 4. Use the handleLogout from the context
-                                onClick={handleLogout}
-                                className="font-medium border border-gray-300 rounded px-3 sm:px-4 py-1 sm:py-2 text-sm hover:bg-gray-100 transition"
-                            >
-                                Logout
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => navigate('/login')}
-                                className="font-medium bg-blue-600 text-white rounded px-3 sm:px-4 py-1 sm:py-2 text-sm hover:bg-blue-700 transition"
-                            >
-                                Login
-                            </button>
-                        )}
-                    </div>
-                    
-                    {/* ... (rest of the component is the same) ... */}
-                    {/* Cart Button */}
-                    <Link to="/cart" className="relative p-1">
-                        <img className="h-6 w-6 sm:h-8 sm:w-8" src={cart} alt="cart" />
-                        {sum > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold min-w-[16px] h-[16px] sm:min-w-[18px] sm-h-[18px] rounded-full flex items-center justify-center text-[10px] sm:text-xs">
-                                {sum > 99 ? '99+' : sum}
-                            </span>
-                        )}
-                    </Link>
-
-                    {/* Hamburger Menu */}
-                    <button
-                        className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        aria-label="Toggle menu"
-                    >
-                        <div className="w-5 h-4 flex flex-col justify-between">
-                            <span className={`block h-0.5 w-5 bg-current transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
-                            <span className={`block h-0.5 w-5 bg-current transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></span>
-                            <span className={`block h-0.5 w-5 bg-current transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
-                        </div>
-                    </button>
-                </div>
-                
-                {/* Desktop Navigation */}
-                <ul className="hidden md:flex gap-6 text-gray-700 font-medium absolute left-1/2 transform -translate-x-1/2">
-                   {/* ... */}
-                </ul>
-            </div>
-
-            {/* Mobile Menu */}
-            <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-                isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-            }`}>
-                <div className="bg-gray-50 border-t border-gray-200">
-                    {/* ... (Navigation links) ... */}
-                    
-                    {/* Mobile Login/Logout */}
-                    <div className="border-t border-gray-200 p-4">
-                        {isLoggedIn ? (
-                            <button
-                                onClick={handleMobileLogout} // Use the new handler for mobile
-                                className="w-full bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition-colors font-medium"
-                            >
-                                Logout
-                            </button>
-                        ) : (
-                            <button
-                                onClick={() => {
-                                    navigate('/login');
-                                    setIsMenuOpen(false);
-                                }}
-                                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                            >
-                                Login
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <Shopcontext.Provider value={contextvalue}>
+            {props.children}
+        </Shopcontext.Provider>
     );
 };
 
-export default Navbar;
+export default Shopcontextprovider;
