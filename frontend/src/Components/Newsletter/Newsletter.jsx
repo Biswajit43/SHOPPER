@@ -14,17 +14,26 @@ const Newsletter = () => {
         Subscribe to our newsletter and stay updated
       </h2>
       
-      {/* Input & Button */}
-      <div className="flex flex-col md:flex-row items-center gap-4 mt-6 w-full max-w-xl">
+      {/* Form */}
+      <form 
+        action="https://formspree.io/f/mkgzllvb"  // <-- Replace with your Formspree endpoint
+        method="POST"
+        className="flex flex-col md:flex-row items-center gap-4 mt-6 w-full max-w-xl"
+      >
         <input
           type="email"
+          name="email"
           placeholder="Enter your email..."
+          required
           className="flex-1 px-5 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition w-full text-gray-700"
         />
-        <button className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform text-white px-6 py-3 rounded-full shadow-md w-full md:w-auto">
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 active:scale-95 transition-transform text-white px-6 py-3 rounded-full shadow-md w-full md:w-auto"
+        >
           Subscribe
         </button>
-      </div>
+      </form>
     </div>
   );
 };
