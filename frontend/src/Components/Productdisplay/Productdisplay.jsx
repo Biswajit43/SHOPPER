@@ -26,11 +26,12 @@ const Productdisplay = (props) => {
     const handleAddToCart = () => {
         addtocart(product.id, selectedSize);
 
-        if (!user) {
-            // If user not logged in, navigate to login
+        const token = localStorage.getItem('token');
+        if (!token) {
+            // If not logged in, navigate to login page
             navigate('/login');
         } else {
-            // If logged in, show toast instead of redirect
+            // Show success message if logged in
             alert(`${product.name} added to cart!`);
         }
     };
