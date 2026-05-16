@@ -170,10 +170,18 @@ app.post('/create_product', async (req, res) => {
 });
 
 app.post('/remove_product', async (req, res) => {
-    const { id } = req.body;
-    await productmodel.findOneAndDelete({ _id: id })
-    console.log("item will be removed")
-    res.send(removedproduct)
+    try {
+        const { id } = req.body;
+
+        const removedproduct = await productmodel.findByIdAndDelete(id);
+
+        console.log("item removed");
+
+        res.send(removedproduct);
+    } catch (error) {
+        console.log(error);
+        res.status(500).send("Error removing product");
+    }
 });
 
 app.get('/allproduct', async (req, res) => {
