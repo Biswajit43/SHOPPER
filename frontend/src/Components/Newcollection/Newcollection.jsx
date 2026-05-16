@@ -13,8 +13,8 @@ const Newcollection = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                 {new_collections.map((val, i) => {
                     return <Item
-                        key={i}
-                        id={i}
+                        key={val.id}
+                        id={val.id}
                         name={val.name}
                         image={val.image}
                         new_price={val.new_price}

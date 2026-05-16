@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
+import axios from 'axios' 
 const Allproduct = () => {
   const [product, setproduct] = useState([]);
 
@@ -10,17 +11,25 @@ const Allproduct = () => {
       .catch((err) => console.error("Error fetching products:", err));
   };
 
-  const removeitem = async (id) => {
-    await fetch(`https://shopper-backend-uolh.onrender.com/remove_product`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ id: id })
-    }).then(() => alert("Item removed!"))
-      .catch((err) => console.error("Error removing item:", err));
+  const removeitem = async (_id) => {
 
-    await allitem();
+    try {
+
+      await axios.post(
+        'https://shopper-backend-uolh.onrender.com/remove_product',
+        { id: _id }
+      );
+
+      alert("Item Removed!");
+
+      allitem();
+
+    } catch (err) {
+
+      console.log("Error removing item:", err);
+
+    }
+
   };
 
   useEffect(() => {

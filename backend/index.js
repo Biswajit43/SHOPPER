@@ -8,7 +8,7 @@ const productmodel = require('./model/Productmodel')
 const path = require('path');
 const { userInfo } = require('os');
 const cloudinary = require('cloudinary').v2
-const streamifier = require('streamifier'); 
+const streamifier = require('streamifier');
 
 require('dotenv').config();
 const { error, log } = require('console');
@@ -68,7 +68,7 @@ app.post('/register', async (req, res) => {
     try {
         let { name, email, password } = req.body;
         let check = await usermodel.findOne({ email: email })
-        
+
         if (!check) {
             let salt = await bcrypt.genSalt(15);
             let hashedpassword = await bcrypt.hash(password, salt)
@@ -79,12 +79,12 @@ app.post('/register', async (req, res) => {
             }
 
             let user = await usermodel.create({
-                name, 
-                email, 
-                password: hashedpassword, 
+                name,
+                email,
+                password: hashedpassword,
                 cartdata: cart,
             })
-            
+
             const data = {
                 user: {
                     id: user._id,
@@ -106,7 +106,7 @@ app.post('/login', async (req, res) => {
     try {
         let { email, password } = req.body;
         let user = await usermodel.findOne({ email: email })
-        
+
         if (user) {
             let match = await bcrypt.compare(password, user.password);
             if (match) {
@@ -170,8 +170,8 @@ app.post('/create_product', async (req, res) => {
 });
 
 app.post('/remove_product', async (req, res) => {
-    const { id, name, image, catagory, new_price, old_price, date, available } = req.body;
-    const removedproduct = await productmodel.findOneAndDelete(id)
+    const { id } = req.body;
+    await productmodel.findOneAndDelete({ _id: id })
     console.log("item will be removed")
     res.send(removedproduct)
 });
@@ -209,11 +209,11 @@ app.get('/popularinwomen', async (req, res) => {
 // FIXED: fetchUser middleware - removed localStorage (doesn't exist on server)
 const fetchUser = async (req, res, next) => {
     const token = req.headers.token || req.headers.authorization?.replace('Bearer ', '');
-    
+
     if (!token) {
         return res.status(401).json({ "error": "log in first with email and password" });
     }
-    
+
     try {
         const data = jwt.verify(token, "secretkey")
         req.user = data.user;
@@ -229,22 +229,22 @@ app.post('/addtocart', fetchUser, async (req, res) => {
         if (!validuser) {
             return res.status(404).json({ success: false, error: "User not found" });
         }
-        
+
         const itemId = req.body.item_id;
         if (!validuser.cartdata) {
             validuser.cartdata = {};
         }
-        
+
         validuser.cartdata[itemId] = (validuser.cartdata[itemId] || 0) + 1;
         await usermodel.findOneAndUpdate(
-            { _id: req.user.id }, 
+            { _id: req.user.id },
             { cartdata: validuser.cartdata }
         );
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: "Item added to cart",
-            cartdata: validuser.cartdata 
+            cartdata: validuser.cartdata
         });
     } catch (error) {
         console.error('Add to cart error:', error);
@@ -258,21 +258,21 @@ app.post('/removefromcart', fetchUser, async (req, res) => {
         if (!validuser) {
             return res.status(404).json({ success: false, error: "User not found" });
         }
-        
+
         const itemId = req.body.item_id;
         if (validuser.cartdata && validuser.cartdata[itemId] > 0) {
             validuser.cartdata[itemId] -= 1;
         }
-        
+
         await usermodel.findOneAndUpdate(
-            { _id: req.user.id }, 
+            { _id: req.user.id },
             { cartdata: validuser.cartdata }
         );
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: "Item removed from cart",
-            cartdata: validuser.cartdata 
+            cartdata: validuser.cartdata
         });
     } catch (error) {
         console.error('Remove from cart error:', error);
@@ -331,7 +331,7 @@ app.post('/empty', fetchUser, async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, error: "User not found" });
         }
-        
+
         user.cartdata = {};
         await user.save();
         res.json({ success: true, message: "Cart emptied successfully" });
